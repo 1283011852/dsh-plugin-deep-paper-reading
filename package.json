@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "DeepSeek Harness plugin: registers the 文献精读模式 (Deep Paper Reading) agent preset — figure-by-figure, experiment-by-experiment close reading of a single biomedical paper.",
   "type": "module",
+  "main": "index.js",
   "license": "MIT",
   "keywords": [
     "deepseek",

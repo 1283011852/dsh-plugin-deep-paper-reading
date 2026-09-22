@@ -1,0 +1,6 @@
+# Keep the repository's checked-in line endings deterministic: CI runs on Linux
+# and the preset/patch files are read by tools that should not see CRLF.
+* text=auto eol=lf
+
+*.dshpreset binary
+*.png binary

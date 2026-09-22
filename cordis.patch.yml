@@ -20,6 +20,13 @@
 # contributed by a profile-level bundle that is the profile directory, which is
 # what makes the package resolvable here. This mirrors how the loader itself
 # resolves a row's package name.
+#
+# The expression resolves `dsh-plugin-deep-paper-reading/package.json` on
+# purpose, so the package directory is found by Node's own resolution rather
+# than by guessing a node_modules layout (pnpm, `link:`, and a tarball install
+# all differ). CONSEQUENCE: package.json must keep `package.json` reachable as a
+# subpath — do not add a restrictive `exports` map without including
+# `"./package.json": "./package.json"`, or this resolve throws at boot.
 
 - insert:
     - id: deep-paper-reading-preset
