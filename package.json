@@ -1,0 +1,45 @@
+{
+  "name": "dsh-plugin-deep-paper-reading",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness plugin: registers the 文献精读模式 (Deep Paper Reading) agent preset — figure-by-figure, experiment-by-experiment close reading of a single biomedical paper.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "agent-preset",
+    "deep-paper-reading",
+    "paper-reading",
+    "literature",
+    "biomedical"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1283011852/dsh-plugin-deep-paper-reading.git"
+  },
+  "homepage": "https://github.com/1283011852/dsh-plugin-deep-paper-reading",
+  "bugs": {
+    "url": "https://github.com/1283011852/dsh-plugin-deep-paper-reading/issues"
+  },
+  "files": [
+    "cordis.patch.yml",
+    "index.js",
+    "presets",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build:preset": "node scripts/build-dshpreset.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

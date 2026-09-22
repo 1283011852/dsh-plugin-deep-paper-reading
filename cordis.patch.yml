@@ -1,0 +1,35 @@
+# dsh-plugin-deep-paper-reading — bundle patch
+#
+# Contributes one agent preset to the harness: `deep-paper-reading` (文献精读模式),
+# bundled under ./presets/. Installing this bundle makes that mode appear in the
+# agent-preset picker next to the shipped and locally authored presets.
+#
+# TWO THINGS TO KNOW BEFORE EDITING
+#
+# 1. A patch replaces the WHOLE `config` value of the row it targets — it does NOT
+#    deep-merge keys. Every key `@deepseek-ai/dsh-agent-presets` needs is therefore
+#    restated below. Dropping one does not fall back to the earlier layer's value;
+#    it becomes missing, and a `default`-less roster row fails to configure.
+#
+# 2. The `roots` override below therefore owns the roster's configured-root list.
+#    If another bundle or your profile's own cordis.patch.yml also configures that
+#    row, the later layer wins outright and the earlier roots disappear. Merge the
+#    `roots` arrays by hand in your profile patch if you need both.
+#
+# `baseUrl` in a `!!js` expression is the composition's own directory — for a row
+# contributed by a profile-level bundle that is the profile directory, which is
+# what makes the package resolvable here. This mirrors how the loader itself
+# resolves a row's package name.
+
+- insert:
+    - id: deep-paper-reading-preset
+      name: 'dsh-plugin-deep-paper-reading'
+
+- id: agent-presets
+  config:
+    default: standard
+    includeShippedRoot: true
+    includeUserRoot: true
+    roots:
+      - trust: system
+        path: !!js "process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(new URL('package.json', baseUrl)).resolve('dsh-plugin-deep-paper-reading/package.json')), 'presets')"
