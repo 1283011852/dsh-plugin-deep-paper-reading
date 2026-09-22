@@ -69,6 +69,7 @@ The skill assumes a working PDF toolchain (`python` + PyMuPDF). If it is missing
 ├── index.js                        # boot-time self-check row
 ├── presets/deep-paper-reading/     # the agent preset (composition, metadata, bundled skill)
 ├── scripts/build-dshpreset.mjs     # dependency-free .dshpreset packer
+├── scripts/check-composition.py    # static composition checks (CI, every push)
 └── .github/workflows/              # ci.yml checks, release.yml attaches the package
 ```
 
@@ -87,9 +88,17 @@ Prefer the `.dshpreset` install if you would rather not take either consequence 
 
 ## Verification
 
-- The preset was mount-validated through the roster (`standingKeyFor` → `mounted OK`), which composes the plugin subtree for real.
-- The composition's `skill-filesystem` row points `customSkillDirs` at `new URL('skills/', baseUrl)`; the preset `Include` sets `baseUrl` to the composition's own directory, so the bundled skill travels with the preset whether it is mounted from the user root, from this package's `presets/`, or from an imported `.dshpreset`.
-- The packer mirrors the DSH Desktop importer's constraints (manifest `format`/`version`, id rule, ≤512 files, ≤12 MB per file, ≤32 MB uncompressed, ≤16 MB compressed), and CI re-reads the archive with `unzip` to check its layout.
+What was actually checked before publishing, rather than assumed:
+
+- **Preset mounts**: `agentPresets.standingKeyFor('deep-paper-reading')` → `mounted OK`, which composes the plugin subtree for real.
+- **Bundled skill travels with the preset**: the composition's `skill-filesystem` row points `customSkillDirs` at `new URL('skills/', baseUrl)`, and the preset `Include` sets `baseUrl` to the composition's own directory (confirmed in `mount.js`/`specifier.js`). The skill root therefore resolves whether the preset is mounted from the user root, from this package's `presets/`, or from an imported `.dshpreset`.
+- **Bundle install and patch application**: in a throwaway profile, `dsh plugin add` this package, add the `dsh-web-app` layer, then `--dump-config` — the insert row lands and the `agent-presets` override restates all four keys (`default`, `includeShippedRoot`, `includeUserRoot`, `roots`).
+- **The `!!js` expression evaluates**: `dsh --profile <test profile> --help` loads every row and evaluates its config — exit 0, no configuration error, with the plugin's self-check row printing `registered from …\presets\deep-paper-reading`. The path arithmetic was additionally run standalone in Node: it resolves to this package's `presets/`, where both `agent.cordis.yml` and `SKILL.md` exist.
+- **`--dump-config` proves the patch applied, not that it evaluated** (it prints the `!!js` source), which is why the step above is the one that matters.
+- **Package format**: the packer mirrors the DSH Desktop importer's constraints (manifest `format`/`version`, id rule, ≤512 files, ≤12 MB per file, ≤32 MB uncompressed, ≤16 MB compressed), and CI re-reads the archive with `unzip`.
+- **Static composition checks**: `python3 scripts/check-composition.py` verifies the bundle manifest, the override keys, and the preset/skill metadata on every push.
+
+Not verified: that the preset appears in *your* picker — that requires one real install, the only step that must happen in a live environment.
 
 On your own machine, without booting anything:
 

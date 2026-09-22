@@ -96,6 +96,7 @@ cp -r presets/deep-paper-reading/skills/deep-paper-reading ~/.agents/skills/
 │       └── skills/
 │           └── deep-paper-reading/ # 技能本体（逐字节原样）
 ├── scripts/build-dshpreset.mjs     # 零依赖打包 .dshpreset
+├── scripts/check-composition.py    # 组合静态检查（CI 每次 push 跑）
 └── .github/workflows/              # ci.yml 校验，release.yml 发版附包
 ```
 
@@ -129,11 +130,17 @@ DSH 的 patch 语义是**整段替换目标行的 `config`，不做深合并**�
 
 ## 验证
 
-**本仓库发布前做过的验证：**
+**发布前实际做过的验证（不是"应该能行"）：**
 
-- 预设挂载校验：`agentPresets.standingKeyFor('deep-paper-reading')` → `mounted OK`（真正组合了一遍插件子树，不是文件格式检查）
-- 组合内 `skill-filesystem` 行的 `customSkillDirs` 用的是 `new URL('skills/', baseUrl)`；预设 `Include` 会把 `baseUrl` 设为**组合自身目录**，所以内置技能随预设走，不论预设是从用户根、本包 `presets/`，还是导入的 `.dshpreset` 挂载
-- 打包脚本按 DSH Desktop 导入器的约束实现（`format`/`version`、id 规则、≤512 文件、单文件 ≤12 MB、解压后 ≤32 MB、压缩后 ≤16 MB），并在 CI 里用 `unzip` 回读校验包内布局
+- **预设挂载校验**：`agentPresets.standingKeyFor('deep-paper-reading')` → `mounted OK`，真正组合了一遍插件子树，不是文件格式检查。
+- **内置技能随预设走**：组合里 `skill-filesystem` 行的 `customSkillDirs` 用的是 `new URL('skills/', baseUrl)`；预设 `Include` 会把 `baseUrl` 设为**组合自身目录**（在 `mount.js`/`specifier.js` 里确认），所以不论预设是从用户根、本包 `presets/`，还是导入的 `.dshpreset` 挂载，技能目录都能解析到。
+- **插件安装 + patch 生效**：建了一个一次性 profile，`dsh plugin add` 本包，然后在 profile 里加上 `dsh-web-app` 层再 `--dump-config`——确认注入行到位、`agent-presets` 行被覆盖且四个键（`default`/`includeShippedRoot`/`includeUserRoot`/`roots`）全部重述。
+- **`!!js` 表达式可求值**：`dsh --profile <测试 profile> --help` 加载全部行并求值配置，退出码 0、无配置错误，并且插件自检行打印出 `registered from …\presets\deep-paper-reading`。表达式的路径数学另用 Node 单独跑过：解析结果正是包内的 `presets/`，其下 `agent.cordis.yml` 与 `SKILL.md` 都存在。
+- **`--dump-config` 只证明 patch 应用，不证明求值**（它打印 `!!js` 原文），所以上面第 3 条才是关键那一步。
+- **包格式**：打包脚本按 DSH Desktop 导入器的约束实现（`format`/`version`、id 规则、≤512 文件、单文件 ≤12 MB、解压后 ≤32 MB、压缩后 ≤16 MB），CI 里再用 `unzip` 回读校验包内布局与 manifest。
+- **组合静态检查**：`python3 scripts/check-composition.py`，检查 bundle manifest、patch 覆盖键、预设与技能元数据（CI 每次 push 都跑）。
+
+**没验的**：预设最终出现在你机器上的预设选择器里，需要你在真实 profile 装一次才能看到——那是唯一一步必须在真实环境发生的。
 
 **你自己的机器上怎么验（不启动、不打扰现有会话）：**
 
