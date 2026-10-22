@@ -520,27 +520,49 @@ def render_flow(spec: dict, scale: float) -> Image.Image:
         si, ti = row_index[src], row_index[dst]
         label = edge.get("label") or (EDGE_LABEL_ZH.get(etype, "") if zh else etype)
 
-        if ti == si + 1:
-            start = ((a["x0"] + a["x1"]) / 2, a["y1"])
-            end = ((b["x0"] + b["x1"]) / 2, b["y0"])
-            arrow(draw, start, end, colour, dashed, width=1.8 * scale, head=10 * scale)
-            mid = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
+        if si == ti:
+            # Same row: a short horizontal arrow between the facing sides. Drawing
+            # these through the corridor (as an earlier version did) leaves the
+            # reader with no way to tell which box a line belongs to.
+            if a["x1"] <= b["x0"]:
+                start = (a["x1"], (a["y0"] + a["y1"]) / 2)
+                end = (b["x0"], (b["y0"] + b["y1"]) / 2)
+            else:
+                start = (a["x0"], (a["y0"] + a["y1"]) / 2)
+                end = (b["x1"], (b["y0"] + b["y1"]) / 2)
+            arrow(draw, start, end, colour, dashed, width=1.8 * scale, head=11 * scale)
+            # the gap between two boxes in a row is narrower than most labels, so
+            # the label goes just below the row instead of on top of the gap
+            mid = ((start[0] + end[0]) / 2, max(a["y1"], b["y1"]) + 13 * scale)
+        elif abs(ti - si) == 1:
+            # One layer apart (either direction): a direct segment between the two
+            # facing edges. Short, unambiguous, and the arrowhead touches the box
+            # it points at.
+            if ti > si:
+                start = ((a["x0"] + a["x1"]) / 2, a["y1"])
+                end = ((b["x0"] + b["x1"]) / 2, b["y0"])
+            else:
+                start = ((a["x0"] + a["x1"]) / 2, a["y0"])
+                end = ((b["x0"] + b["x1"]) / 2, b["y1"])
+            arrow(draw, start, end, colour, dashed, width=1.8 * scale, head=11 * scale)
+            # label sits 62% of the way toward the target, so it reads as the
+            # target's transition rather than floating in empty space
+            mid = (start[0] + (end[0] - start[0]) * 0.62,
+                   start[1] + (end[1] - start[1]) * 0.62)
         else:
-            # Skipping a layer, or pointing backwards: route through a corridor on
-            # the right of the box area. Both horizontal runs sit in an inter-row
-            # gap (never at box mid-height, where the line would strike through
-            # every box it passes), and the final vertical run drops into the
-            # target's own column so it cannot cross a neighbour.
+            # Spanning two or more layers: corridor on the right. The horizontal
+            # runs sit in inter-row gaps (never at box mid-height), the final run
+            # drops into the target's own column, and each label is staggered
+            # along the channel so parallel edges cannot share a label slot.
             corridor += 1
-            off = 18 * scale + corridor * 16 * scale
+            off = 18 * scale + corridor * 18 * scale
             right = margin + rail + content_w + off
             src_row, dst_row = rows[si], rows[ti]
             if ti > si:
                 exit_y = src_row["top"] + src_row["height"] + gap_y * 0.42
-                entry_y = dst_row["top"] - gap_y * 0.42
             else:
                 exit_y = src_row["top"] - gap_y * 0.42
-                entry_y = dst_row["top"] - gap_y * 0.42
+            entry_y = dst_row["top"] - gap_y * 0.42
             exit_y = max(exit_y, margin + 6 * scale)
             entry_y = max(entry_y, margin + 6 * scale)
             start = ((a["x0"] + a["x1"]) / 2, exit_y)
@@ -554,8 +576,13 @@ def render_flow(spec: dict, scale: float) -> Image.Image:
             ]
             for p, q in legs:
                 arrow(draw, p, q, colour, dashed, width=1.8 * scale,
-                      head=10 * scale if q == end else 0.1)
-            mid = (right + 3 * scale, entry_y + (-12 if corridor % 2 else 12) * scale)
+                      head=11 * scale if q == end else 0.1)
+            mid = (right + 4 * scale, entry_y - corridor * 13 * scale)
+        # a filled dot marks the origin of every edge, so "where does this line
+        # start" is answered without tracing it backwards
+        r = 3.6 * scale
+        draw.ellipse((start[0] - r, start[1] - r, start[0] + r, start[1] + r),
+                     fill=colour, outline=colour)
         if label:
             drawn_labels.append((mid, label, colour))
 
