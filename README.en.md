@@ -20,6 +20,20 @@ A **DeepSeek Harness plugin** that ships the *文献精读模式* (Deep Paper Re
 | **Stronger checks** | `check-composition.py` now verifies that every file SKILL.md tells the agent to open is actually packaged, and that V1–V8 are declared in both SKILL.md and the visualization spec. CI renders the sample figures. |
 | **The skill is no longer byte-identical to upstream** | The skill body was edited for the above (it used to be a verbatim copy); provenance notes updated. |
 
+## What it can do
+
+Full introduction (Chinese, with four capability figures): [docs/skill-intro.md](docs/skill-intro.md).
+
+The eight-phase workflow — arrow direction is reading order, and every phase has an artifact:
+
+![Eight-phase workflow](docs/capabilities/cap-1-workflow.png)
+
+Which required figure answers which question — structure, evidence, gap, and stage delivery are separate jobs:
+
+![Which required figure answers which question](docs/capabilities/cap-2-coverage.png)
+
+Also: [deliverables and the gates they must pass](docs/capabilities/cap-3-deliverables.png) · [what a real run looks like](docs/capabilities/cap-4-sample.png)
+
 ## What the mode does
 
 1. Acquire and first-pass scan the paper; persist the full text to `sources/paper-fulltext.txt`

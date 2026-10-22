@@ -185,6 +185,9 @@ SUPER_SUB = {
     "\u2078": "^8", "\u2079": "^9",
     "\u2080": "_0", "\u2081": "_1", "\u2082": "_2", "\u2083": "_3", "\u2084": "_4",
     "\u2085": "_5", "\u2086": "_6", "\u2087": "_7", "\u2088": "_8", "\u2089": "_9",
+    # arrows and relations that CJK fonts routinely lack (these come out as tofu
+    # boxes exactly like the superscripts did)
+    "\u2194": "<->", "\u21c4": "<->", "\u21d2": "=>", "\u21d4": "<=>",
 }
 _replaced_chars: set[str] = set()
 

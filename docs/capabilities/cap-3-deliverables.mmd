@@ -1,0 +1,27 @@
+```mermaid
+flowchart TD
+    accTitle: 图 3｜交付什么，以及必须过哪些关卡
+    accDescr: SKILL.md Phase 7–8；references/docx-conversion-standard.md 第 13 节；scripts/check-*
+    in["PDF / DOI：正文 + 补充材料一起取；取不到的写「缺失」"]
+    md["精读报告 .md：八节 + 附录（Mermaid 源码随文）"]
+    figs["figures/：11–12 张 PNG + JSON spec + .mmd"]
+    docx["DOCX：A4 / 样式矩阵 / 表格≤6 列 / 三行图注"]
+    g1["关卡①：V1–V8 齐备、每图有来源行、中文非方框"]
+    g2["关卡②：25 项 Word 清单 + 转 PDF 逐页目视复核"]
+    in -->|"支撑"| md
+    in -->|"支撑"| figs
+    md -->|"支撑"| docx
+    figs -->|"验图"| g1
+    docx -->|"验版式"| g2
+    g1 -->|"汇总"| g2
+    classDef conclusion fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    class md conclusion
+    classDef context fill:#F1F5F9,stroke:#64748B,color:#1F2937
+    class in context
+    classDef implication fill:#E0F2FE,stroke:#0284C7,color:#0C4A6E
+    class docx implication
+    classDef result fill:#EDE9FE,stroke:#6D28D9,color:#3B0764
+    class figs result
+    classDef risk fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    class g1,g2 risk
+```

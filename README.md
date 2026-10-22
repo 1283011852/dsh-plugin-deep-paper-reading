@@ -22,6 +22,22 @@
 
 ---
 
+## 能力一览
+
+> 完整介绍（含四张能力图与「它不做什么」）见 [docs/skill-intro.md](docs/skill-intro.md)。
+
+**八阶段工作流**——箭头方向即阅读顺序，每一步都有产出物，不是"读完再动手"：
+
+![八阶段工作流](docs/capabilities/cap-1-workflow.png)
+
+**八张必做图各回答哪个问题**——结构、证据、缺口、现场讲解四类问题分工明确：
+
+![八张必做图的职责分工](docs/capabilities/cap-2-coverage.png)
+
+另外两张：[交付物与质量关卡](docs/capabilities/cap-3-deliverables.png) ｜ [真实跑出来的样子](docs/capabilities/cap-4-sample.png)（Cell 2026 · mRNA-TCE 治疗难治性 ITP 的实际产出）
+
+---
+
 ## 这个模式做什么
 
 | 阶段 | 内容 |
@@ -166,6 +182,9 @@ cp -r presets/deep-paper-reading/skills/deep-paper-reading ~/.agents/skills/
 │               └── scripts/render-diagram.py   # 离线渲染器（Pillow）
 ├── scripts/build-dshpreset.mjs     # 零依赖打包 .dshpreset
 ├── scripts/check-composition.py    # 组合 + 技能文件引用 + V1–V8 契约检查（CI 每次 push 跑）
+├── scripts/check-render-selftest.py # 渲染器自检（四类图 + source 规则，CI 每次 push 跑）
+├── docs/skill-intro.md             # 能力介绍（四张能力图 + 边界说明）
+├── docs/capabilities/              # 能力图 PNG + 可重渲染的 JSON spec
 └── .github/workflows/              # ci.yml 校验（含渲染器自检），release.yml 发版附包
 ```
 

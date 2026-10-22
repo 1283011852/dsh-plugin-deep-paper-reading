@@ -1,0 +1,32 @@
+```mermaid
+flowchart TD
+    accTitle: 图 1｜八阶段工作流
+    accDescr: SKILL.md Core Workflow（Phase 1–8）与 references/reading-checklist.md
+    s1["① 取全文并落盘 sources/paper-fulltext.txt"]
+    s2["② 初扫：图注 → 末段假设 → Results 结构"]
+    s3["③ 正文逐行 + 补充材料同等严格"]
+    s4["④ 图注<->正文映射；图要真看过"]
+    s5["⑤ 逐实验四要素：目的/工具/结果/解读"]
+    s6["⑥ 逻辑链重建：过渡分类 + 断裂点"]
+    s7["⑦ 画图：V1–V8，逐张验源行与字形"]
+    s8["⑧ 报告交付；要 Word 按格式标准导出"]
+    s1 -->|"支撑"| s2
+    s2 -->|"下行"| s3
+    s3 -->|"支撑"| s4
+    s4 -->|"支撑"| s5
+    s5 -->|"承接"| s6
+    s6 -->|"图化"| s7
+    s7 -->|"交付"| s8
+    classDef conclusion fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    class s8 conclusion
+    classDef context fill:#F1F5F9,stroke:#64748B,color:#1F2937
+    class s2 context
+    classDef experiment fill:#CCFBF1,stroke:#0F766E,color:#134E4A
+    class s1,s3 experiment
+    classDef hypothesis fill:#DBEAFE,stroke:#1D4ED8,color:#1E3A5F
+    class s7 hypothesis
+    classDef interpretation fill:#FCE7F3,stroke:#BE185D,color:#831843
+    class s6 interpretation
+    classDef result fill:#EDE9FE,stroke:#6D28D9,color:#3B0764
+    class s4,s5 result
+```
