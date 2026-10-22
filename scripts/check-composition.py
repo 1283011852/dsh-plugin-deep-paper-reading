@@ -33,6 +33,14 @@ Loader.add_multi_constructor(
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ID_PATTERN = __import__("re").compile(r"^[a-z0-9][a-z0-9-]*$")
 
+# Paths the skill tells the agent to open, written in backticks relative to the
+# skill directory. If one of them is not bundled, the agent discovers that in the
+# middle of a reading session instead of at CI time.
+REFERENCE_PATH = __import__("re").compile(
+    r"`((?:references|assets|scripts)/[A-Za-z0-9._/-]+)`"
+)
+REQUIRED_FIGURES = tuple(f"V{index}" for index in range(1, 9))
+
 failures = []
 
 
@@ -162,6 +170,44 @@ if check(preset_dirs, "no preset directories found under presets/"):
                     os.path.basename(os.path.dirname(skill_file)) == name,
                     f"{relative(skill_file)}: directory name and skill name differ ({name})",
                 )
+
+            # --- bundled files the skill tells the agent to read must ship -----
+            # A skill that names a reference file it does not bundle fails at the
+            # worst possible moment: mid-reading, when the agent has already spent
+            # the tokens. Check the paths SKILL.md mentions in backticks.
+            skill_dir = os.path.dirname(skill_file)
+            for referenced in sorted(set(REFERENCE_PATH.findall(text))):
+                candidate = os.path.join(skill_dir, referenced.replace("/", os.sep))
+                check(
+                    os.path.isfile(candidate),
+                    f"{relative(skill_file)}: references {referenced}, which is not bundled",
+                )
+
+            # --- the visual contract has to be stated, not implied -------------
+            for figure_id in REQUIRED_FIGURES:
+                check(
+                    figure_id in text,
+                    f"{relative(skill_file)}: required figure {figure_id} is not mentioned",
+                )
+
+            spec_path = os.path.join(skill_dir, "references", "visualization-spec.md")
+            if check(os.path.isfile(spec_path), f"{relative(skill_file)}: visualization-spec.md is missing"):
+                spec = read(spec_path)
+                for figure_id in REQUIRED_FIGURES:
+                    check(
+                        figure_id in spec,
+                        f"{relative(spec_path)}: figure {figure_id} is not defined",
+                    )
+                check(
+                    "source" in spec,
+                    f"{relative(spec_path)}: the traceable-source rule is not stated",
+                )
+
+            docx_standard = os.path.join(skill_dir, "references", "docx-conversion-standard.md")
+            check(
+                os.path.isfile(docx_standard),
+                f"{relative(skill_file)}: docx-conversion-standard.md is missing",
+            )
 
 if failures:
     print(f"{len(failures)} check(s) failed:\n", file=sys.stderr)

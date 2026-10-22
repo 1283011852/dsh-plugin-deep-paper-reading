@@ -1,7 +1,7 @@
 {
   "name": "dsh-plugin-deep-paper-reading",
-  "version": "0.1.0",
-  "description": "DeepSeek Harness plugin: registers the 文献精读模式 (Deep Paper Reading) agent preset — figure-by-figure, experiment-by-experiment close reading of a single biomedical paper.",
+  "version": "0.2.0",
+  "description": "DeepSeek Harness plugin: registers the 文献精读模式 (Deep Paper Reading) agent preset — figure-by-figure, experiment-by-experiment close reading of a single biomedical paper, delivered as diagrams (logic-chain flowchart, consistency matrix, risk map) plus evidence tables, with a bundled DOCX conversion standard.",
   "type": "module",
   "main": "index.js",
   "license": "MIT",
@@ -14,7 +14,11 @@
     "deep-paper-reading",
     "paper-reading",
     "literature",
-    "biomedical"
+    "biomedical",
+    "mermaid",
+    "flowchart",
+    "diagram",
+    "docx"
   ],
   "repository": {
     "type": "git",
