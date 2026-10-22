@@ -176,6 +176,42 @@ FONTS = Fonts()
 # text helpers
 # --------------------------------------------------------------------------
 
+# Superscript/subscript characters are common in biomedical labels (10⁻⁹ M,
+# CD8⁺) and routinely missing from CJK fonts — they come out as tofu boxes.
+# Rewrite them into plain notation rather than shipping boxes.
+SUPER_SUB = {
+    "\u207b": "-", "\u207a": "+", "\u2070": "^0", "\u00b9": "^1", "\u00b2": "^2",
+    "\u00b3": "^3", "\u2074": "^4", "\u2075": "^5", "\u2076": "^6", "\u2077": "^7",
+    "\u2078": "^8", "\u2079": "^9",
+    "\u2080": "_0", "\u2081": "_1", "\u2082": "_2", "\u2083": "_3", "\u2084": "_4",
+    "\u2085": "_5", "\u2086": "_6", "\u2087": "_7", "\u2088": "_8", "\u2089": "_9",
+}
+_replaced_chars: set[str] = set()
+
+
+def sanitize(text: str) -> str:
+    """Replace font-hostile super/subscript characters; report what was changed."""
+    if not text:
+        return text
+    out = []
+    for ch in text:
+        if ch in SUPER_SUB:
+            _replaced_chars.add(ch)
+            out.append(SUPER_SUB[ch])
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def sanitize_report():
+    if _replaced_chars:
+        shown = " ".join(sorted(_replaced_chars))
+        sys.stderr.write(
+            f"note: rewrote super/subscript characters to plain notation ({shown}); "
+            "CJK fonts usually lack these glyphs\n"
+        )
+
+
 def tokenise(text: str) -> list[str]:
     """Split into wrap units: CJK per character, Latin per word, spaces kept."""
     out: list[str] = []
@@ -354,16 +390,24 @@ def render_flow(spec: dict, scale: float) -> Image.Image:
             if role not in ROLE_STYLE:
                 raise SpecError(f"node {name}: unknown role {role!r}")
             role_label = node.get("tag") or ""
+            # The tag (figure numbers, "Exp 1") is drawn inside the box too, so the
+            # box has to be wide enough for it — otherwise it spills over the
+            # neighbouring box, which is what the first render of Fig V1 did.
+            tag_w = role_font.getlength(role_label) if role_label else 0
+            width = max(min_box, min(max_box, max(text_w, tag_w) + 2 * pad_x))
+            tag_lines = wrap(role_label, role_font, width - 2 * pad_x) if role_label else []
             boxes[name] = {
                 "lines": lines,
-                "w": max(min_box, min(max_box, text_w + 2 * pad_x)),
+                "w": width,
                 "text_h": len(lines) * node_font.size * 1.28,
+                "tag_lines": tag_lines,
+                "tag_h": len(tag_lines) * role_font.size * 1.4,
                 "role": role,
                 "role_label": role_label,
             }
 
     for name, box in boxes.items():
-        box["h"] = box["text_h"] + 2 * pad_y + (role_font.size * 1.5 if box["role_label"] else 0)
+        box["h"] = box["text_h"] + 2 * pad_y + box["tag_h"]
         box["h"] = max(box["h"], 46 * scale)
 
     # ---- place nodes ---------------------------------------------------
@@ -450,9 +494,11 @@ def render_flow(spec: dict, scale: float) -> Image.Image:
                                radius=8 * scale, fill=fill, outline=stroke,
                                width=int(round(1.6 * scale)))
         ty = box["y0"] + pad_y
-        if box["role_label"]:
-            draw.text((box["x0"] + pad_x, ty), box["role_label"], font=role_font, fill=stroke)
-            ty += role_font.size * 1.5
+        if box["tag_lines"]:
+            for index, line in enumerate(box["tag_lines"]):
+                draw.text((box["x0"] + pad_x, ty + index * role_font.size * 1.4),
+                          line, font=role_font, fill=stroke)
+            ty += box["tag_h"]
         for i, line in enumerate(box["lines"]):
             draw.text((box["x0"] + pad_x, ty + i * node_font.size * 1.28),
                       line, font=node_font, fill=ink)
@@ -481,18 +527,35 @@ def render_flow(spec: dict, scale: float) -> Image.Image:
             mid = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
         else:
             # Skipping a layer, or pointing backwards: route through a corridor on
-            # the right of the box area. The left side belongs to the layer rail, so
-            # a corridor there would print the edge label on top of "实验 / 结果".
+            # the right of the box area. Both horizontal runs sit in an inter-row
+            # gap (never at box mid-height, where the line would strike through
+            # every box it passes), and the final vertical run drops into the
+            # target's own column so it cannot cross a neighbour.
             corridor += 1
-            off = 18 * scale + corridor * 12 * scale
+            off = 18 * scale + corridor * 16 * scale
             right = margin + rail + content_w + off
-            start = (a["x1"], (a["y0"] + a["y1"]) / 2)
-            end = (b["x1"], (b["y0"] + b["y1"]) / 2)
-            pts = [start, (right, start[1]), (right, end[1]), end]
-            for p, q in zip(pts, pts[1:]):
+            src_row, dst_row = rows[si], rows[ti]
+            if ti > si:
+                exit_y = src_row["top"] + src_row["height"] + gap_y * 0.42
+                entry_y = dst_row["top"] - gap_y * 0.42
+            else:
+                exit_y = src_row["top"] - gap_y * 0.42
+                entry_y = dst_row["top"] - gap_y * 0.42
+            exit_y = max(exit_y, margin + 6 * scale)
+            entry_y = max(entry_y, margin + 6 * scale)
+            start = ((a["x0"] + a["x1"]) / 2, exit_y)
+            cx_b = (b["x0"] + b["x1"]) / 2
+            end = (cx_b, b["y0"])
+            legs = [
+                (start, (right, exit_y)),
+                ((right, exit_y), (right, entry_y)),
+                ((right, entry_y), (cx_b, entry_y)),
+                ((cx_b, entry_y), end),
+            ]
+            for p, q in legs:
                 arrow(draw, p, q, colour, dashed, width=1.8 * scale,
                       head=10 * scale if q == end else 0.1)
-            mid = (right + 2 * scale, (start[1] + end[1]) / 2)
+            mid = (right + 3 * scale, entry_y + (-12 if corridor % 2 else 12) * scale)
         if label:
             drawn_labels.append((mid, label, colour))
 
@@ -730,17 +793,20 @@ def render_scatter(spec: dict, scale: float) -> Image.Image:
         label = point.get("label", "")
         placed.append((cx, cy, label, stroke))
 
-    # labels to the right, with simple vertical de-overlap
+    # labels to the right, with simple vertical de-overlap — the advance has to
+    # account for labels actually taking two lines, or the second line lands on
+    # the next label
     placed.sort(key=lambda item: item[1])
     last_y = -1e9
     for cx, cy, label, colour in placed:
-        ty = max(cy - point_font.size * 0.6, last_y + point_font.size * 1.25)
-        last_y = ty
+        lines = wrap(label, point_font, right_pad - 26 * scale)[:2]
+        ty = max(cy - point_font.size * 0.6, last_y)
         draw.line((cx + 9 * scale, cy, px1 + 12 * scale, ty + point_font.size * 0.55),
                   fill="#CBD5E1", width=1)
-        for k, line in enumerate(wrap(label, point_font, right_pad - 26 * scale)[:2]):
+        for k, line in enumerate(lines):
             draw.text((px1 + 16 * scale, ty + k * point_font.size * 1.15), line,
                       font=point_font, fill=INK)
+        last_y = ty + len(lines) * point_font.size * 1.15 + 3 * scale
 
     # axes
     xlabel = spec.get("x_label", "")
@@ -1032,6 +1098,17 @@ SAMPLE_TIMELINE = {
 }
 
 
+def sanitize_spec(value):
+    """Recursively rewrite font-hostile characters in every string of a spec."""
+    if isinstance(value, str):
+        return sanitize(value)
+    if isinstance(value, list):
+        return [sanitize_spec(item) for item in value]
+    if isinstance(value, dict):
+        return {key: sanitize_spec(item) for key, item in value.items()}
+    return value
+
+
 def selftest(tmp: str) -> int:
     os.makedirs(tmp, exist_ok=True)
     failures = []
@@ -1112,11 +1189,13 @@ def main(argv=None) -> int:
         raise SystemExit(f"unknown kind {spec.get('kind')!r}; expected one of {sorted(RENDERERS)}")
 
     check_source(spec)
+    spec = sanitize_spec(spec)
     img = RENDERERS[kind](spec, args.scale)
     out_dir = os.path.dirname(os.path.abspath(args.out))
     os.makedirs(out_dir, exist_ok=True)
     img.save(args.out, format="PNG", dpi=(300, 300))
     print(f"wrote {args.out} ({img.width}x{img.height}px)")
+    sanitize_report()
 
     if args.mermaid:
         with open(args.mermaid, "w", encoding="utf-8", newline="\n") as handle:
