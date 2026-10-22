@@ -37,25 +37,11 @@ jobs:
       - name: Check composition shape
         run: python3 scripts/check-composition.py
 
-      # Renders all four diagram kinds plus the "no source line is rejected"
-      # rule. A figure renderer that silently produces empty PNGs would let every
-      # report claim eight diagrams it never drew, so this runs on every push.
+      # Renders all four diagram kinds, checks the PNG sizes and asserts that a
+      # spec without a `source` line is rejected. A renderer that silently
+      # produces blank images would let every report claim figures it never drew.
       - name: Diagram renderer self-test
-        run: |
-          set -euo pipefail
-          python3 presets/deep-paper-reading/skills/deep-paper-reading/scripts/render-diagram.py \
-            --selftest --tmp /tmp/diagram-selftest
-          test -s /tmp/diagram-selftest/selftest-flow.png
-          test -s /tmp/diagram-selftest/selftest-matrix.png
-          test -s /tmp/diagram-selftest/selftest-scatter.png
-          test -s /tmp/diagram-selftest/selftest-timeline.png
-          python3 - <<'PY'
-          from PIL import Image
-          for name in ("flow", "matrix", "scatter", "timeline"):
-              img = Image.open(f"/tmp/diagram-selftest/selftest-{name}.png")
-              assert img.width >= 1200, (name, img.size)
-              print(f"{name}: {img.size[0]}x{img.size[1]} ok")
-          PY
+        run: python3 scripts/check-render-selftest.py
 
       - name: Build the .dshpreset package
         run: node scripts/build-dshpreset.mjs
